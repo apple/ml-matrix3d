@@ -1,0 +1,168 @@
+train:
+  val_inference_steps: 50
+  val_scheduler: DDPM
+  val_height: 512
+  val_width: 512
+  
+eval:
+  val_inference_steps: 50
+  scheduler: DDPM 
+  save_image: True
+
+modalities:
+  rgb:
+    dimensions: 2
+    height: 64
+    width: 64
+    patch_size: 2
+    dense: True
+    gen_channel:
+      latent: 4
+    cond_channel:
+      dino: 768
+      latent: 4
+  ray:
+    dimensions: 2
+    height: 32
+    width: 32
+    patch_size: 1
+    dense: True
+    gen_channel:
+      dir: 3
+      moment: 3
+    cond_channel:
+      dir: 3
+      moment: 3
+  depth:
+    dimensions: 2
+    height: &depth_size 128
+    width: 128
+    patch_size: 4
+    dense: False
+    seq_len: &depth_token_num 1024
+    gen_channel:
+      disparity: 1
+    gen_aux_channel:
+      valid: 1
+    cond_channel:
+      disparity: 1
+      valid: 1
+  local_caption:
+    dimensions: 1
+    cond_channel:
+      latent: 1024
+  global_caption:
+    dimensions: 1
+    cond_channel:
+      latent: 1024
+
+data:
+  shuffle: True
+  modalities: ['rgb', 'ray', 'depth', 'local_caption', 'global_caption']
+  modalities_probs: [[2, 2, 1], [2, 2, 1], [2, 2, 1], [0, 1, 0], [0, 1, 1]]   # each modality contains three probs: gens/conds/not_used. no need to sum to 1, would be normalized automatically
+  dataset_supported_modalities: ['rgb', 'ray', 'depth', 'local_caption', 'global_caption']
+  dataset_type: 'object-centric'  # 'object-centric', 'scenes'
+  shift_scales:  # mean/scale
+    rgb: [0.000, 1.000]
+    ray:
+      dirs: [0.000, 1.800]
+      moms: [-0.100, 2.700]
+      origins: [-0.145, 1.700]     # origin & direction are only used when use_plucker==False
+      directions: [0.145, 1.715]
+    depth: [1.100, 2.000]  
+  num_view: [2, 8]
+  num_batch_per_scene: null
+  cond_size: 896
+  gen_size: 512
+  raymap_size: 32       # this should be consistent to the model rays config!
+  use_plucker: True     # if False, use ray origins and directions instead
+  use_background: True
+  use_depth_valid_only: True
+  background_color: "white"
+  # relative_pose: "raydiffusion_refcam" 
+  pose_trans_jitter: 0.0
+  relative_rot: True
+  relative_trans: 1.0
+  pre_resize: 512    # always pre-resize images to 512, and predict the KRT of 512-sized images
+  depth_size: *depth_size     # TODO: this is a temp setting, should align with the patch size in model config!
+  depth_samples_per_images: *depth_token_num 
+  center_crop_min_scale: 1.0  # in [0.0, 1.0], 0.6
+  center_crop_max_jitter: 0.0    # in pixel  15
+  per_sample_aug_enable: False   # For vae training only, set this to false for all other paras
+  per_sample_aug:
+    depth:
+      rotate: [-30.0, 30.0]
+      scale: [0.5, 1.0]
+      value_scales: [0.5, 2.0]
+  raydiffusion_official: False
+  dataset_overwrite:
+    mvimgnet:
+      dataset_supported_modalities: ['rgb', 'ray', 'local_caption', 'global_caption']
+      use_background: False
+    co3dv2:
+      use_background: False
+    realestate10k:
+      dataset_supported_modalities: ['rgb', 'ray', 'local_caption', 'global_caption']
+      dataset_type: 'scenes'
+      use_background: False
+    hypersim:
+      dataset_type: 'scenes'
+      use_background: False
+    arkitscenes:
+      dataset_supported_modalities: ['rgb', 'depth', 'global_caption', 'local_caption']
+      dataset_type: 'scenes'
+      use_background: False
+    dtu:
+      dataset_supported_modalities: ['rgb', 'ray', 'depth']
+      use_background: False
+    mipnerf360:
+      dataset_supported_modalities: ['rgb', 'ray']
+      use_background: False
+    llff:
+      dataset_supported_modalities: ['rgb', 'ray']
+      dataset_type: 'scenes'
+      use_background: False
+  validation_overwrite:
+    num_batch_per_scene: 1
+    center_crop_min_scale: 1.0
+    center_crop_max_jitter: 0.0
+    pose_trans_jitter: 0.0
+    modalities: ['rgb', 'ray', 'depth', 'local_caption', 'global_caption']
+    modalities_probs: [[2, 2, 0], [2, 2, 0], [2, 2, 0], [0, 1, 0], [0, 1, 0]]   # each modality contains three probs: gens/conds/not_used. no need to sum to 1, would be normalized automatically
+    num_view: [2, 8]
+  evaluation_overwrite:
+    shuffle: False
+    center_crop_min_scale: 1.0
+    center_crop_max_jitter: 0.0
+    pose_trans_jitter: 0.0
+    modalities_probs: [[2, 2, 0], [2, 2, 0], [2, 2, 0], [0, 1, 0], [0, 1, 0]]
+  inference_overwrite:
+    shuffle: False
+    num_batch_per_scene: 1
+    num_view: 8
+
+model:
+  model_type: dit
+  hidden_size: 1024
+  depth: 40
+  encoder: True
+  encoder_depth: 20
+  decoder_url: Tencent-Hunyuan/HunyuanDiT-Diffusers
+  scheduler_url: Tencent-Hunyuan/HunyuanDiT-Diffusers
+  peripheral_url: Tencent-Hunyuan/HunyuanDiT-Diffusers
+  qk_norm: rmsnorm  # "layernorm" or None
+  mod_norm: True  # modality-specific normalization
+  pe_config:  # choose from 'sinusoid', 'sinusoid_all' and 'rope'
+    pos:
+      type: rope
+      base_size: 64
+    view:
+      type: sinusoid_all
+      base: 70007
+      max: 8
+      zero_init: False
+    mod:
+      type: sinusoid_all
+      base: 30003
+      max: 5   # Local (view-dependent): RGB + Ray + Disparity + Text  Global (view-independent): global text description
+      zero_init: False

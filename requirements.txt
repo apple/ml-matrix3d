@@ -1,0 +1,21 @@
+ipdb
+imageio
+imageio-ffmpeg
+matplotlib
+numpy==1.26
+scipy
+omegaconf
+opencv-python
+plotly
+transformers
+tensorboard
+open3d
+sentencepiece
+deepspeed
+torchtyping
+diffusers==0.31.0
+accelerate
+scikit-image
+torchmetrics
+git+https://github.com/NVlabs/tiny-cuda-nn#subdirectory=bindings/torch
+nerfstudio @ git+https://github.com/nerfstudio-project/nerfstudio@fc4fc5cb15ad994ea82d8c651c9d42172d890de1
