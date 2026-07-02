@@ -21,12 +21,24 @@ import pathlib
 from nerfstudio.process_data import process_data_utils
 from nerfstudio.utils.rich_utils import CONSOLE
 
+
+def str2bool(value):
+    if isinstance(value, bool):
+        return value
+    value = value.lower()
+    if value in ('true', '1', 'yes', 'y', 't'):
+        return True
+    if value in ('false', '0', 'no', 'n', 'f'):
+        return False
+    raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type=pathlib.Path, default='x.mov')
     parser.add_argument('--output_folder', type=pathlib.Path, default='~/temp/')
     parser.add_argument('--num_frames_target', type=int, default=300)
-    parser.add_argument('--verbose', type=bool, default=True)
+    parser.add_argument('--verbose', type=str2bool, default=True)
     parser.add_argument('--random_seed', type=int, default=1)
 
     args = parser.parse_args()
